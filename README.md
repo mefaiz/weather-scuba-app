@@ -21,16 +21,16 @@ A Flutter weather application specifically designed for scuba diving locations i
   - Current location detection
 - 🏗️ Clean Architecture implementation
 - 📱 Material Design 3 UI components
-- 🔄 State Management using Flutter Bloc (Cubit)
+- 🔄 State Management using Riverpod StateNotifier
 
 ## Technical Stack
 
 - **Flutter & Dart**: Core framework and programming language
-- **flutter_bloc**: State management using Cubit pattern
+- **flutter_riverpod**: Provider-based state management
 - **Open-Meteo API**: Free weather data provider
 - **geolocator**: Location services
 - **http**: API communication
-- **equatable**: Value equality comparison
+- **mocktail**: Unit testing mocks
 
 ## Architecture
 
@@ -40,17 +40,25 @@ The project follows Clean Architecture principles with the following layers:
 lib/
 ├── models/         # Data models
 ├── repositories/   # Data sources and API handling
-├── cubits/         # Business logic and state management
+├── providers/      # Business logic and state management
 └── screens/        # UI components
 ```
 
 ## State Management
 
-The app uses the Cubit pattern (part of flutter_bloc) for state management, providing:
-- Clear separation of concerns
-- Predictable state updates
-- Easy testing capabilities
-- Efficient rebuilds
+Riverpod StateNotifier drives the app's weather flow with:
+- Explicit async state via `AsyncValue`
+- Built-in dependency injection for repositories
+- Decoupled controller logic that is simple to unit test
+- Scoped listeners for transient UI messaging
+
+## Testing
+
+Run the automated suite with FVM to ensure consistent Flutter tooling:
+
+```bash
+fvm flutter test
+```
 
 ## Platform Support
 
