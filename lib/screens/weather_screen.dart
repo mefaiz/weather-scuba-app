@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:weather_app/cubits/weather_cubit.dart';
-import 'package:weather_app/cubits/weather_state.dart';
-import 'package:weather_app/models/diving_spot_model.dart';
-import 'package:weather_app/models/weather_model.dart';
-import 'package:flutter/services.dart';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:weather_app/models/diving_spot_model.dart';
+import 'package:weather_app/models/weather_model.dart';
+import 'package:weather_app/providers/weather_controller.dart';
+import 'package:weather_app/providers/weather_state.dart';
 import 'package:weather_app/screens/appbar.dart';
 import 'package:weather_app/screens/bg_color.dart';
 import 'package:weather_app/screens/forecast.dart';
@@ -14,14 +15,14 @@ import 'package:weather_app/screens/scuba_description.dart';
 import 'package:weather_app/screens/weather_initial.dart';
 import 'package:weather_app/screens/weather_items.dart';
 
-class WeatherScreen extends StatefulWidget {
+class WeatherScreen extends ConsumerStatefulWidget {
   const WeatherScreen({super.key});
 
   @override
-  State<WeatherScreen> createState() => _WeatherScreenState();
+  ConsumerState<WeatherScreen> createState() => _WeatherScreenState();
 }
 
-class _WeatherScreenState extends State<WeatherScreen> {
+class _WeatherScreenState extends ConsumerState<WeatherScreen> {
   List<DivingSpot>? _divingSpots;
   DivingSpot? _selectedSpot;
 
@@ -31,30 +32,41 @@ class _WeatherScreenState extends State<WeatherScreen> {
     _loadDivingSpots();
   }
 
-  // Load diving spots from JSON file
   Future<void> _loadDivingSpots() async {
-    final String jsonString = await rootBundle.loadString('assets/diving_spots.json');
-    final data = json.decode(jsonString);
+    final jsonString = await rootBundle.loadString('assets/diving_spots.json');
+    final data = json.decode(jsonString) as Map<String, dynamic>;
     setState(() {
       _divingSpots = (data['diving_spots'] as List)
-        .map((spot) => DivingSpot.fromJson(spot))
-        .toList();
+          .map((spot) => DivingSpot.fromJson(spot))
+          .toList();
       _selectedSpot = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<WeatherState>(weatherControllerProvider, (previous, next) {
+      final message = next.message;
+      if (message != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        ref.read(weatherControllerProvider.notifier).clearMessage();
+      }
+    });
+
+    final weatherState = ref.watch(weatherControllerProvider);
+
     return Scaffold(
       body: BodyBackgroundColor(
         child: SafeArea(
           bottom: false,
           child: Column(
             children: [
-              // Custom App Bar
               const CustomAppBar(),
-
-              // Location Selector
               if (_divingSpots != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -76,94 +88,81 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         ),
                         isExpanded: true,
                         dropdownColor: const Color(0xFF1E88E5),
-                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                        icon: const Icon(Icons.arrow_drop_down,
+                            color: Colors.white),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                         ),
                         items: [
-                          ..._divingSpots?.map((spot) {
+                          ...?_divingSpots?.map((spot) {
                             return DropdownMenuItem(
                               value: spot,
-                              child: Text(spot.name, style: const TextStyle(
-                                color: Colors.white, 
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              )),
+                              child: Text(
+                                spot.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                             );
-                          }).toList() ?? [],
+                          }),
                         ],
                         onChanged: (DivingSpot? spot) {
                           setState(() {
                             _selectedSpot = spot;
                           });
                           if (spot != null) {
-                            context.read<WeatherCubit>().getWeather(
-                              lat: spot.latitude,
-                              lon: spot.longitude,
-                            );
-                          } 
+                            ref.read(weatherControllerProvider.notifier)
+                              .fetchByCoordinates(
+                                latitude: spot.latitude,
+                                longitude: spot.longitude,
+                              );
+                          }
                         },
                       ),
                     ),
                   ),
                 ),
-
-              // Selected Location Description
               if (_selectedSpot != null)
                 ScubaDescription(description: _selectedSpot!.description),
-
-              // Weather Content
               Expanded(
-                child: BlocConsumer<WeatherCubit, WeatherState>(
-                  listener: (context, state) {
-                    // To show error message if no location is selected
-                    if (state is WeatherNoLocation) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(state.message), 
-                        duration: const Duration(seconds: 2)),
-                      );
+                child: weatherState.weather.when(
+                  data: (weather) {
+                    if (weather == null) {
+                      return const UIInitial();
                     }
+                    return _WeatherContent(weather: weather);
                   },
-                  builder: (context, state) {
-
-                    if (state is WeatherInitial) {
-                      return const UIInitial();
-                    }
-
-                    else if (state is WeatherLoading) {
-                      return const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      );
-                    }
-
-                    else if (state is WeatherLoaded) {
-                      return _buildWeatherContent(context, state.weather);
-                    }
-
-                    else if (state is WeatherError) {
-                      return const UIInitial();
-                    }
-
-                    return const SizedBox();
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                  error: (error, stackTrace) {
+                    return const UIInitial();
                   },
                 ),
               ),
-
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildWeatherContent(BuildContext context, Weather weather) {
+class _WeatherContent extends StatelessWidget {
+  const _WeatherContent({required this.weather});
+
+  final Weather weather;
+
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Current Weather Card
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(
@@ -182,7 +181,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-
                   Text(
                     '${weather.temperature.round()}°C',
                     style: const TextStyle(
@@ -192,45 +190,33 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Display the "feels like" temperature which accounts for humidity and wind
                   WeatherItem(
                     icon: Icons.thermostat,
                     label: 'Feels like',
                     value: '${weather.feelsLike.round()}°C',
                   ),
-
-                  // Show current humidity percentage in the air
                   WeatherItem(
                     icon: Icons.water_drop,
                     label: 'Humidity',
                     value: '${weather.humidity}%',
                   ),
-
-                  // Display wind speed in kilometers per hour
                   WeatherItem(
                     icon: Icons.air,
                     label: 'Wind Speed',
                     value: '${weather.windSpeed} km/h',
                   ),
-
-                  // Show precipitation amount in millimeters
                   WeatherItem(
                     icon: Icons.umbrella,
                     label: 'Precipitation',
                     value: '${weather.precipitation} mm',
                   ),
-
                 ],
               ),
             ),
           ),
-
-          // Forecast Section
           ForecastSection(weather: weather),
         ],
       ),
     );
   }
-
-} 
+}

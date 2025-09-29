@@ -21,9 +21,7 @@ class ForecastSection extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          
           const SizedBox(height: 16),
-
           SizedBox(
             height: 160,
             child: ListView.builder(
@@ -32,7 +30,7 @@ class ForecastSection extends StatelessWidget {
               itemCount: weather.forecast.length,
               itemBuilder: (context, index) {
                 final forecast = weather.forecast[index];
-                
+
                 return Container(
                   width: 130,
                   margin: const EdgeInsets.only(right: 12),
@@ -47,7 +45,6 @@ class ForecastSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-
                         // Day
                         Text(
                           DateFormat('EEE').format(forecast.date),
@@ -66,15 +63,14 @@ class ForecastSection extends StatelessWidget {
                           ),
                         ),
                         const Divider(color: Colors.white30),
-                    
+
                         // Max Temp
                         ForecastItem(
-                          label: 'Max Temp: ${forecast.maxTemp.round()}°'),
-                    
+                            label: 'Max Temp: ${forecast.maxTemp.round()}°'),
+
                         // Min Temp
                         ForecastItem(
-                          label: 'Min Temp: ${forecast.minTemp.round()}°'),
-                        
+                            label: 'Min Temp: ${forecast.minTemp.round()}°'),
                       ],
                     ),
                   ),
@@ -82,7 +78,6 @@ class ForecastSection extends StatelessWidget {
               },
             ),
           ),
-
           const SizedBox(height: 50),
         ],
       ),

@@ -18,8 +18,11 @@ class WeatherForecast {
       date: DateTime.parse(json['daily']['time'][index]),
       maxTemp: (json['daily']['temperature_2m_max'][index] as num).toDouble(),
       minTemp: (json['daily']['temperature_2m_min'][index] as num).toDouble(),
-      precipitationProbability: (json['daily']['precipitation_probability_max'][index] as num).toInt(),
-      maxWindSpeed: (json['daily']['wind_speed_10m_max'][index] as num).toDouble(),
+      precipitationProbability:
+          (json['daily']['precipitation_probability_max'][index] as num)
+              .toInt(),
+      maxWindSpeed:
+          (json['daily']['wind_speed_10m_max'][index] as num).toDouble(),
     );
   }
 }
@@ -60,4 +63,4 @@ class Weather {
       forecast: forecasts,
     );
   }
-} 
+}

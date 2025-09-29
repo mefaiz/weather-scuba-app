@@ -19,4 +19,4 @@ class DivingSpot {
       description: json['description'],
     );
   }
-} 
+}

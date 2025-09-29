@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'cubits/weather_cubit.dart';
-import 'repositories/weather_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/weather_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -24,10 +22,7 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: Colors.transparent,
       ),
-      home: BlocProvider(
-        create: (context) => WeatherCubit(WeatherRepository()),
-        child: const WeatherScreen(),
-      ),
+      home: const WeatherScreen(),
     );
   }
 }
